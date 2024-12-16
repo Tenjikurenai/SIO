@@ -3,7 +3,8 @@ $ftpServer = "10.10.121.32"
 $ftpUsername = "cyber"
 $ftpPassword = "P@ssw0rd"
 $remoteFilePath = "/test.tar.gz"
-$localFilePath = "C:\\FTP\\archive.tar.gz"
+$localFilePath = "C:\FTP\archive.tar.gz"
+$localDirectory = [System.IO.Path]::GetDirectoryName($localFilePath)
 $smtpServer = "smtp.example.com"
 $smtpPort = 587
 $smtpUsername = "admin@example.com"
@@ -24,6 +25,22 @@ function Send-ErrorEmail {
     } catch {
         Write-Error "Échec de l'envoi du mail : $_"
     }
+}
+
+# Vérification de l'existence du répertoire local
+try {
+    if (-Not (Test-Path -Path $localDirectory -PathType Container)) {
+        # Création du répertoire s'il n'existe pas
+        New-Item -ItemType Directory -Path $localDirectory -Force | Out-Null
+        Write-Host "Le répertoire $localDirectory a été créé."
+    } else {
+        Write-Host "Le répertoire $localDirectory existe déjà."
+    }
+} catch {
+    $errorMessage = "Erreur lors de la vérification ou de la création du répertoire local : $_"
+    Write-Error $errorMessage
+    Send-ErrorEmail -errorMessage $errorMessage
+    exit 1
 }
 
 # Téléchargement de l'archive
@@ -49,7 +66,7 @@ try {
 
     Write-Host "Téléchargement terminé avec succès."
 } catch {
-    $errorMessage = "$_"
-    Write-Error "Erreur : $errorMessage"
+    $errorMessage = "Erreur lors du téléchargement de l'archive : $_"
+    Write-Error $errorMessage
     Send-ErrorEmail -errorMessage $errorMessage
 }
